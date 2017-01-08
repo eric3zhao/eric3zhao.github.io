@@ -78,9 +78,9 @@ analytics:
 # Site Author
 author:
   name             : "你好，赵万辛！"
-  avatar           : # path of avatar image, e.g. "/assets/images/bio-photo.jpg"
+  avatar           : "/assets/images/watchdogman.jpeg" # path of avatar image, e.g. "/assets/images/bio-photo.jpg"
   bio              : "疯一样的男子？"
-  location         : "Ningbo China"
+  location         : "Zhejiang, China."
   email            : azizwz@163.com
   uri              :
   bitbucket        :
@@ -174,7 +174,7 @@ sass:
 permalink: /:categories/:title/
 paginate: 5 # amount of posts to show
 paginate_path: /page:num/
-timezone: # http://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+timezone: Asia/Shanghai # http://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 
 
 # Plugins
