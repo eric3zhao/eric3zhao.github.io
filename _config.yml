@@ -6,11 +6,11 @@
 # `jekyll serve`. If you change this file, please restart the server process.
 
 # Site Settings
-locale                   : "en"
-title                    : "Site Title"
+locale                   : "zh-CN"
+title                    : "知"
 title_separator          : "-"
-name                     : "Your Name"
-description              : "An amazing website."
+name                     : "你好，赵万辛！"
+description              : "业精于勤荒于嬉."
 url                      : # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
 baseurl                  : # the subpath of your site, e.g. "/blog"
 repository               : # GitHub username/repo-name e.g. "mmistakes/minimal-mistakes"
@@ -77,11 +77,11 @@ analytics:
 
 # Site Author
 author:
-  name             : "Your Name"
+  name             : "你好，赵万辛！"
   avatar           : # path of avatar image, e.g. "/assets/images/bio-photo.jpg"
-  bio              : "I am an amazing person."
-  location         : "Somewhere"
-  email            :
+  bio              : "疯一样的男子？"
+  location         : "Ningbo China"
+  email            : azizwz@163.com
   uri              :
   bitbucket        :
   codepen          :
@@ -102,7 +102,7 @@ author:
   tumblr           :
   twitter          :
   vine             :
-  weibo            :
+  weibo            : http://weibo.com/1862679881
   xing             :
   youtube          : # "https://youtube.com/c/MichaelRoseDesign"
 
