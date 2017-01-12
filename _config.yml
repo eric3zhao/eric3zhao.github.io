@@ -10,7 +10,7 @@ locale                   : "zh-CN"
 title                    : "知"
 title_separator          : "-"
 name                     : "你好，赵万辛！"
-description              : "业精于勤荒于嬉."
+description              : "阿梓的小站"
 url                      : # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
 baseurl                  : # the subpath of your site, e.g. "/blog"
 repository               : # GitHub username/repo-name e.g. "mmistakes/minimal-mistakes"
@@ -79,7 +79,7 @@ analytics:
 author:
   name             : "你好，赵万辛！"
   avatar           : "/assets/images/watchdogman.jpeg" # path of avatar image, e.g. "/assets/images/bio-photo.jpg"
-  bio              : "疯一样的男子？"
+  bio              : "业精于勤荒于嬉"
   location         : "Zhejiang, China."
   email            : azizwz@163.com
   uri              :
