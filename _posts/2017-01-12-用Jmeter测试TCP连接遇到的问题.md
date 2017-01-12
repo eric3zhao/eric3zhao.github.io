@@ -7,6 +7,7 @@ Jmeter默认发送TCP数据采用的是文本数据（TCPClientImpl），但是�
 
 ![截图1](/assets/images/6083BA4E-CA4A-4821-AD02-B2D637DF0AED.png)
 我在jmeter.log中截取了完整的报错信息
+
 ```
 2017/01/12 10:37:07 ERROR - jmeter.protocol.tcp.sampler.TCPSampler:  org.apache.jmeter.protocol.tcp.sampler.ReadException: 
 	at org.apache.jmeter.protocol.tcp.sampler.BinaryTCPClientImpl.read(BinaryTCPClientImpl.java:140)
@@ -52,7 +53,7 @@ Caused by: java.net.SocketException: Socket closed
     }
 ```
 
-看上去是没收倒是EolByte，以这个为出发点我在Stack Overflow里面找到一个问答http://stackoverflow.com/questions/10683853/jmeter-tcp-sampler-incorrectly-reports-500，里面提到设置EolByte能解决问题，根据以上的信息我在TCP取样器的设置里面找到了EOL，在我的例子中返回的数据中最后的的byte是0x78转换为十进制的数字是120，所以我们填120
-![截图2](/assets/images/40BA4C81-E9C1-4C36-BACA-90A8BF5C171D.png)
+看上去是没收倒是EolByte，以这个为出发点我在Stack Overflow里面找到一个问答[JMeter TCP Sampler incorrectly reports 500](http://stackoverflow.com/questions/10683853/jmeter-tcp-sampler-incorrectly-reports-500)，里面提到设置EolByte能解决问题，根据以上的信息我在TCP取样器的设置里面找到了EOL，在我的例子中返回的数据中最后的的byte是0x78转换为十进制的数字是120，所以我们填120
+![截图2](/assets/images/8533FE56-7E90-49DA-A573-8A17B64A27A1.png)
 最后我们在运行一遍就能得到想要的结果了
 
