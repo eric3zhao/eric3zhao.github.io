@@ -8,7 +8,7 @@ Jmeter默认发送TCP数据采用的是文本数据（TCPClientImpl），但是�
 ![截图1](/assets/images/6083BA4E-CA4A-4821-AD02-B2D637DF0AED.png)
 我在jmeter.log中截取了完整的报错信息
 
-```
+```java
 2017/01/12 10:37:07 ERROR - jmeter.protocol.tcp.sampler.TCPSampler:  org.apache.jmeter.protocol.tcp.sampler.ReadException: 
 	at org.apache.jmeter.protocol.tcp.sampler.BinaryTCPClientImpl.read(BinaryTCPClientImpl.java:140)
 	at org.apache.jmeter.protocol.tcp.sampler.TCPSampler.sample(TCPSampler.java:415)
@@ -28,7 +28,7 @@ Caused by: java.net.SocketException: Socket closed
 
 然后看了源代码
 
-```
+```java
 @Override
     public String read(InputStream is) throws ReadException {
         ByteArrayOutputStream w = new ByteArrayOutputStream();
