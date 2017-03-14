@@ -2,7 +2,7 @@
 去年开始学习kafka，写了一个消费者的例子，最近回顾的时候发现一个问题，首先看当初写的例子(API版本是0.9.0.0)
 先写一个消费者类
 
-```
+```java
 public class KafkaMessageConsumer {
     private KafkaConsumer consumer;
     private List<String> topics;
@@ -52,7 +52,7 @@ public class KafkaMessageConsumer {
 
 main函数的代码如下
 
-```
+```java
 public class KafkaExample {
 
     private KafkaMessageConsumer consumer;
@@ -92,7 +92,7 @@ public class KafkaExample {
 为了解决这个问题，可以使用`CountDownLatch`来控制。
 修改后的代码段如下
 
-```
+```java
 public void processMessage() {
         try {
             consumer.subscribe(topics);
