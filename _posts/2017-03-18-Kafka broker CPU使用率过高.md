@@ -29,3 +29,5 @@
  - kafka.utils.ShutdownableThread.run() @bci=23, line=63 (Compiled frame)
 
  看上去像是kafka清除log文件有问题，但是由于对kafka的了解有限目前还处于抓瞎状态😂，先记录下来。
+
+*额外补充：当我使用`jstack`查看线程信息的时候提示：`20758: Unable to open socket file: target process not responding or HotSpot VM not loaded`。按照提示我们使用`jstack -f`生成的dump文件，具体的原因还没有找到。*
