@@ -90,6 +90,7 @@ author:
   facebook         :
   foursquare       :
   github           :
+  gitlab           :
   google_plus      :
   keybase          :
   instagram        :
@@ -241,6 +242,12 @@ defaults:
       layout: single
       author_profile: true
       read_time: true
+<<<<<<< HEAD
       comments: true # true
       share: false
       related: true
+=======
+      comments: # true
+      share: true
+      related: true
+>>>>>>> mmistakes/master
