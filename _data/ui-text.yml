@@ -621,8 +621,6 @@ lt: &DEFAULT_LT
 lt-LT:
   <<: *DEFAULT_LT
 
-<<<<<<< HEAD
-=======
 # Greek
 # --------------
 gr: &DEFAULT_GR
@@ -842,7 +840,6 @@ vi: &DEFAULT_VI
 vi-VN:
   <<: *DEFAULT_VI
 
->>>>>>> mmistakes/master
 # Another locale
 # --------------
 #
