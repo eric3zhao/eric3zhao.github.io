@@ -3,6 +3,7 @@ Jmeter默认发送TCP数据采用的是文本数据（TCPClientImpl），但是�
 * TCPClientImpl：文本数据，默认为这种
 * BinaryTCPClientImpl：传输16进制数据，可以指定包结束符
 * LengthPrefixedBinaryTCPClientImpl：数据包中前2个字节为数据长度
+
 我采用BinaryTCPClientImpl类型的。但是在运行中发现我设置了两次循环但是执行卡住了只能主动的去停止执行或者等待超时，当我中断任务以后在结果树中发现所有的请求都response code:500
 
 ![截图1](/assets/images/6083BA4E-CA4A-4821-AD02-B2D637DF0AED.png)
