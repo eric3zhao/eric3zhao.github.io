@@ -7,7 +7,9 @@
 
 接下来使用`ps -mp pid -o THREAD,tid,time`查看具体是哪个线程暂用的CPU时间最高。我们找到一个线程`root     79.5  19    - -         -      - 20828 27-19:21:46`
 最后我们用jstack生成kafka进程的线程信息。`jstack 20758 > kafka.txt`打开生成的线程信息文件通过上面查询出来的**tid**去查询堆栈信息，我从中截取除了对应线程的信息
->Thread 20828: (state = IN_NATIVE)
+
+```shell
+Thread 20828: (state = IN_NATIVE)
  - sun.nio.ch.FileDispatcherImpl.pread0(java.io.FileDescriptor, long, int, long) @bci=0 (Compiled frame; information may be imprecise)
  - sun.nio.ch.FileDispatcherImpl.pread(java.io.FileDescriptor, long, int, long) @bci=6, line=52 (Compiled frame)
  - sun.nio.ch.IOUtil.readIntoNativeBuffer(java.io.FileDescriptor, java.nio.ByteBuffer, long, sun.nio.ch.NativeDispatcher) @bci=88, line=220 (Compiled frame)
@@ -27,6 +29,7 @@
  - kafka.log.LogCleaner$CleanerThread.cleanOrSleep() @bci=99, line=230 (Interpreted frame)
  - kafka.log.LogCleaner$CleanerThread.doWork() @bci=1, line=208 (Interpreted frame)
  - kafka.utils.ShutdownableThread.run() @bci=23, line=63 (Compiled frame)
+```
 
  看上去像是kafka清除log文件有问题，但是由于对kafka的了解有限目前还处于抓瞎状态😂，先记录下来。
 
