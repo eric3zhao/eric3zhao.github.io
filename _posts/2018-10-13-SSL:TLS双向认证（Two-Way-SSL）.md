@@ -1,10 +1,10 @@
-##起源
+## 起源
 
 目前我们的服务都是单向认证的模式（客户端认证服务器的形式）。但是SSL本身是支持双向认证的，所以本文介绍如何自建一个CA证书，并通过自建的CA证书签发不同的客户端证书来实现双向认证。以下的内容都是基于`Java`。
 
-##签发过程
+## 签发过程
 
-###步骤一：创建自定义的CA
+### 步骤一：创建自定义的CA
 
 商用CA签发证书费用不菲，处于测试的目的我们可以创建一个自己的CA去签发证书。使用`openssl`命令创建：`
 openssl req -config /usr/local/etc/openssl/openssl.cnf -new -x509 -keyout ca-key.pem -out ca-certificate.pem -days 365
@@ -34,7 +34,7 @@ Common Name (e.g. server FQDN or YOUR name) []:sha zhu lao shi
 Email Address []:azizwz@aliyun.com
 ```
 
-###步骤二：创建客户端KeyStore
+### 步骤二：创建客户端KeyStore
 
 使用`keytool`命令创建Keystroe：`keytool -keystore clientkeystore -genkey -alias client`
 
@@ -60,11 +60,11 @@ CN=eric zhao, OU=Development, O=Azi, L=Ningbo, ST=Zhejiang, C=CN是否正确?
 	(如果和密钥库口令相同, 按回车):
 ```
 
-###步骤三：创建CSR
+### 步骤三：创建CSR
 
 基于步骤二创建的`clientkeystore`生成certificate signing request，具体的命令为：`keytool -keystore clientkeystore -certreq -alias client -keyalg rsa -file client.csr`
 
-###步骤四：使用CA和CSR签发证书
+### 步骤四：使用CA和CSR签发证书
 
 使用步骤一生成的CA文件和步骤三生成的CSR文件签发证书，具体命令为：`openssl x509 -req -CA ca-certificate.pem -CAkey ca-key.pem -in client.csr -out client.cer -days 365 -CAcreateserial`，根据提示输入CA私钥的密码就能签发成功。
 
@@ -75,7 +75,7 @@ Getting CA Private Key
 Enter pass phrase for ca-key.pem:
 ```
 
-###步骤五：将CA证书导入KeyStore
+### 步骤五：将CA证书导入KeyStore
 
 使用`keytool`将`client.cer`和`ca-certificate.pem`导入客户端KeyStore。
 
@@ -130,7 +130,7 @@ KeyIdentifier [
 ```
 **注意：本步骤中的1、2顺序不能颠倒，不能漏掉1。**
 
-##如何使用
+## 如何使用
 
 客户端`SSLEngine `
 
@@ -193,7 +193,7 @@ ChannelInitializer<SocketChannel> channel = new ChannelInitializer<SocketChannel
 
 ```
 
-##参考连接
+## 参考连接
 [Creating a Sample CA Certificate](https://docs.oracle.com/cd/E19509-01/820-3503/ggeyj/index.html)
 
 [Signing Certificates With Your Own CA](https://docs.oracle.com/cd/E19509-01/820-3503/ggezy/index.html)
