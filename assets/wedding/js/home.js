@@ -4,7 +4,7 @@
   PM.tilt.init();
 
   PM.bgm = new PM.BGM($('#bgm-audio'), {
-    src: '/audios/music.mp3',
+    src: '/assets/wedding/audios/music.mp3',
     autoplay: false
   });
 
