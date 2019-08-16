@@ -114,7 +114,7 @@ WARN 34146 --- [nio-8090-exec-1] .c.s.e.MultipleJGitEnvironmentRepository : The 
 INFO 34146 --- [nio-8090-exec-1] .c.s.e.MultipleJGitEnvironmentRepository : Reset label master to version AnyObjectId[846eed6b0c3cfd6197e5e02d87ca5e9ecf869a21]
 
 ```
-可以看到本地仓库被回退到和远程仓库一直的版本。
+可以看到本地仓库被回退到和远程仓库一致的版本。
 
 ## Spring-Cloud-Netflix-Eureka
 
