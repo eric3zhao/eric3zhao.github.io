@@ -31,7 +31,7 @@
 ```
 成功以后我们就能在`Solr`的管理界面看到创建成功的`Core`
 
-![Solr Core Admin](/assets/image/solr-core.png)
+![Solr Core Admin](/assets/images/solr-core.png)
 
 创建`Core`也可以在`Solr`的管理界面完成
 
@@ -123,5 +123,8 @@ curl http://127.0.0.1:8983/solr/test/select\?q\=content:%22%E6%B5%8B%E8%AF%95%22
 }}
 ```
 
+## 参考资料
 
-
+* [Indexing MongoDB Data in Apache Solr](https://blog.toadworld.com/2017/02/03/indexing-mongodb-data-in-apache-solr)
+* [Usage with Solr](https://github.com/yougov/mongo-connector/wiki/Usage%20with%20Solr)
+* [Solr Ref Guide 8.1](https://lucene.apache.org/solr/guide/8_1/index.html)
