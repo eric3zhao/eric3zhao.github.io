@@ -1,4 +1,3 @@
-# InfluxDB与Motan
 最近一个项目需要用到[InfluxDB](https://www.influxdata.com)，根据官网的说明我们使用[Influxdb-java](https://github.com/influxdata/influxdb-java)作为客户端的lib，同时结合[Motan](https://github.com/weibocom/motan)提供RPC服务。
 
 ## 创建一个DAO（伪）

@@ -1,5 +1,3 @@
-## 简介
-
 最近学习了Spring Cloud相关的内容，在这里简单归纳一下。本篇文章中提到的代码地址[spring-cloud-demo](https://github.com/eric3zhao/spring-cloud-demo)，`spring boot`的版本为`2.1.5.RELEASE`，`spring cloud`的版本为`Greenwich.SR2`
 
 项目的简单结构图如下

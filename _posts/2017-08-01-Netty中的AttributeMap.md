@@ -1,4 +1,3 @@
-# Netty中的AttributeMap
 在项目的开发中遇到一个问题：当一个连接创建以后，为了确保后续的业务逻辑处理能顺利进行，可能需要将channel的信息与连接所属的实际设备相管理。以前我们处理这个问题所采取的办法获取channelId：`String channelid = ctx.channel().id().asLongText()`和设备的唯一识别标志uuid（*e.g.设备的MAC地址，设备的SN码，GPRS设备的CCID，IMEI号*）,将channelId和uuid添加到一个Map中`Map.put(channelId,uuid)`。这样做带来的额外工作就是每当一个连接断开时需要在`channelInActive`中添加`Map.remove(channelId)`,另外在netty本身的多线程模型下Map的线程安全也是需要考虑的一个点。所以，我一直在寻求更好的解决方案，直到我从《netty in action》中看到本篇文章的主角`AttributeMap`。下面我将举一个简单的例子：运用`AttributeMap`来校验连接的合法性的。
 
 **编写一个常量类保存常量**

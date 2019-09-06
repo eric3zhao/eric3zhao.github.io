@@ -1,5 +1,3 @@
-## 起源
-
 最近的新项目打算使用`spring boot+dubbo+mybatis+druid`的组合实现微服务。不论是`spring`、`dubbo`、`druid`还是`mybatis`在别的项目都有用到，但是所有的配置都是以`xml`的形式存在的，这个一点也不符合`spring boot`的腔调，所以花了一天时间把几个重新整合了一下。所有的代码都在[demo](https://github.com/eric3zhao/dubbo-spring-boot-demo)中。
 
 ## 实现

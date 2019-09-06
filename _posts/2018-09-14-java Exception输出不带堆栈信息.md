@@ -1,4 +1,3 @@
-## 起源
 最近在看服务的error日志的时候发现了一个问题，有很多`NullPointerException`只有`Exception`名却没有`stack trace`的信息导致不容易定位问题点。
 
 ## 解决
