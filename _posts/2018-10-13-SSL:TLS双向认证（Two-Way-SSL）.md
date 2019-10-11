@@ -176,7 +176,7 @@ sslEngine.setNeedClientAuth(Boolean.TRUE);
 ```
 **注意事项一：服务端必须设置`sslEngine.setNeedClientAuth(Boolean.TRUE)`，只有设置以后在Ssl握手的过程中Server才会发送`Certificate Request`，客户端只在收到`Certificate Request`以后才会发送证书信息给Server**
 
-**注意事项二：服务器端的`server.jks`需要导入自建的CA证书`ca-certificate.pem`，如何导入见先前的文章[SSL证书链的使用](http://eric3zhao.me/SSL证书链的使用/)。因为我用的是公司购买的由GlobalSign签发的证书作为服务器端证书所以不需要将服务器的根证书导入`clientkeystore`，如果读者使用自己创建的KeyStore作为服务器端证书记得将客户端的CA证书导入。**
+**注意事项二：服务器端的`server.jks`需要导入自建的CA证书`ca-certificate.pem`，如何导入见先前的文章[SSL证书链的使用](http://eric3zhao.me/SSL证书链的使用/)。因为我用的是公司购买的由GlobalSign签发的证书作为服务器端证书所以不需要将服务器的根证书导入`clientkeystore`，如果读者使用自己创建的KeyStore作为服务器端证书记得将自建的服务器CA证书导入到`clientkeystore`中。**
 
 我使用的netty编写客户端和服务器端。那么如何使用客户端和服务器端的`SSLEngine`呢？只要把`SSLEngine`加入到各自的`pipeline`中就可以了，代码如下：
 
