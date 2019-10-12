@@ -196,4 +196,4 @@ ChannelInitializer<SocketChannel> channel = new ChannelInitializer<SocketChannel
 
 [Signing Certificates With Your Own CA](https://docs.oracle.com/cd/E19509-01/820-3503/ggezy/index.html)
 
-[The Transport Layer Security (TLS) Protocol Version 1.2](https://tools.ietf.org/html/rfc5246#section-7.4.1.3)
+[The Transport Layer Security (TLS) Protocol Version 1.2](https://tools.ietf.org/html/rfc5246#section-7.4.4)
