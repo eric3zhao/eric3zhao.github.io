@@ -1,0 +1,827 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" width="800" height="262" onload="init(evt)" viewBox="0 0 800 262" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<style type="text/css">
+	text { font-family:Verdana; font-size:12px; fill:black; }
+	.func_g:hover { stroke:black; stroke-width:0.5; cursor:pointer; }
+</style>
+<script type="text/ecmascript">
+<![CDATA[
+	var details, searchbtn, matchedtxt, svg;
+	function init(evt) {
+		details = document.getElementById("details").firstChild;
+		searchbtn = document.getElementById("search");
+		matchedtxt = document.getElementById("matched");
+		svg = document.getElementsByTagName("svg")[0];
+		searching = 0;
+	}
+
+	// mouse-over for info
+	function s(node) {		// show
+		info = g_to_text(node);
+		details.nodeValue = "Function: " + info;
+	}
+	function c() {			// clear
+		details.nodeValue = ' ';
+	}
+
+	// ctrl-F for search
+	window.addEventListener("keydown",function (e) {
+		if (e.keyCode === 114 || (e.ctrlKey && e.keyCode === 70)) {
+			e.preventDefault();
+			search_prompt();
+		}
+	})
+
+	// functions
+	function find_child(parent, name, attr) {
+		var children = parent.childNodes;
+		for (var i=0; i<children.length;i++) {
+			if (children[i].tagName == name)
+				return (attr != undefined) ? children[i].attributes[attr].value : children[i];
+		}
+		return;
+	}
+	function orig_save(e, attr, val) {
+		if (e.attributes["_orig_"+attr] != undefined) return;
+		if (e.attributes[attr] == undefined) return;
+		if (val == undefined) val = e.attributes[attr].value;
+		e.setAttribute("_orig_"+attr, val);
+	}
+	function orig_load(e, attr) {
+		if (e.attributes["_orig_"+attr] == undefined) return;
+		e.attributes[attr].value = e.attributes["_orig_"+attr].value;
+		e.removeAttribute("_orig_"+attr);
+	}
+	function g_to_text(e) {
+		var text = find_child(e, "title").firstChild.nodeValue;
+		return (text)
+	}
+	function g_to_func(e) {
+		var func = g_to_text(e);
+		// if there's any manipulation we want to do to the function
+		// name before it's searched, do it here before returning.
+		return (func);
+	}
+	function update_text(e) {
+		var r = find_child(e, "rect");
+		var t = find_child(e, "text");
+		var w = parseFloat(r.attributes["width"].value) -3;
+		var txt = find_child(e, "title").textContent.replace(/\([^(]*\)$/,"");
+		t.attributes["x"].value = parseFloat(r.attributes["x"].value) +3;
+
+		// Smaller than this size won't fit anything
+		if (w < 2*12*0.59) {
+			t.textContent = "";
+			return;
+		}
+
+		t.textContent = txt;
+		// Fit in full text width
+		if (/^ *$/.test(txt) || t.getSubStringLength(0, txt.length) < w)
+			return;
+
+		for (var x=txt.length-2; x>0; x--) {
+			if (t.getSubStringLength(0, x+2) <= w) {
+				t.textContent = txt.substring(0,x) + "..";
+				return;
+			}
+		}
+		t.textContent = "";
+	}
+
+	// zoom
+	function zoom_reset(e) {
+		if (e.attributes != undefined) {
+			orig_load(e, "x");
+			orig_load(e, "width");
+		}
+		if (e.childNodes == undefined) return;
+		for(var i=0, c=e.childNodes; i<c.length; i++) {
+			zoom_reset(c[i]);
+		}
+	}
+	function zoom_child(e, x, ratio) {
+		if (e.attributes != undefined) {
+			if (e.attributes["x"] != undefined) {
+				orig_save(e, "x");
+				e.attributes["x"].value = (parseFloat(e.attributes["x"].value) - x - 10) * ratio + 10;
+				if(e.tagName == "text") e.attributes["x"].value = find_child(e.parentNode, "rect", "x") + 3;
+			}
+			if (e.attributes["width"] != undefined) {
+				orig_save(e, "width");
+				e.attributes["width"].value = parseFloat(e.attributes["width"].value) * ratio;
+			}
+		}
+
+		if (e.childNodes == undefined) return;
+		for(var i=0, c=e.childNodes; i<c.length; i++) {
+			zoom_child(c[i], x-10, ratio);
+		}
+	}
+	function zoom_parent(e) {
+		if (e.attributes) {
+			if (e.attributes["x"] != undefined) {
+				orig_save(e, "x");
+				e.attributes["x"].value = 10;
+			}
+			if (e.attributes["width"] != undefined) {
+				orig_save(e, "width");
+				e.attributes["width"].value = parseInt(svg.width.baseVal.value) - (10*2);
+			}
+		}
+		if (e.childNodes == undefined) return;
+		for(var i=0, c=e.childNodes; i<c.length; i++) {
+			zoom_parent(c[i]);
+		}
+	}
+	function zoom(node) {
+		var attr = find_child(node, "rect").attributes;
+		var width = parseFloat(attr["width"].value);
+		var xmin = parseFloat(attr["x"].value);
+		var xmax = parseFloat(xmin + width);
+		var ymin = parseFloat(attr["y"].value);
+		var ratio = (svg.width.baseVal.value - 2*10) / width;
+
+		// XXX: Workaround for JavaScript float issues (fix me)
+		var fudge = 0.0001;
+
+		var unzoombtn = document.getElementById("unzoom");
+		unzoombtn.style["opacity"] = "1.0";
+
+		var el = document.getElementsByTagName("g");
+		for(var i=0;i<el.length;i++){
+			var e = el[i];
+			var a = find_child(e, "rect").attributes;
+			var ex = parseFloat(a["x"].value);
+			var ew = parseFloat(a["width"].value);
+			// Is it an ancestor
+			if (0 == 0) {
+				var upstack = parseFloat(a["y"].value) > ymin;
+			} else {
+				var upstack = parseFloat(a["y"].value) < ymin;
+			}
+			if (upstack) {
+				// Direct ancestor
+				if (ex <= xmin && (ex+ew+fudge) >= xmax) {
+					e.style["opacity"] = "0.5";
+					zoom_parent(e);
+					e.onclick = function(e){unzoom(); zoom(this);};
+					update_text(e);
+				}
+				// not in current path
+				else
+					e.style["display"] = "none";
+			}
+			// Children maybe
+			else {
+				// no common path
+				if (ex < xmin || ex + fudge >= xmax) {
+					e.style["display"] = "none";
+				}
+				else {
+					zoom_child(e, xmin, ratio);
+					e.onclick = function(e){zoom(this);};
+					update_text(e);
+				}
+			}
+		}
+	}
+	function unzoom() {
+		var unzoombtn = document.getElementById("unzoom");
+		unzoombtn.style["opacity"] = "0.0";
+
+		var el = document.getElementsByTagName("g");
+		for(i=0;i<el.length;i++) {
+			el[i].style["display"] = "block";
+			el[i].style["opacity"] = "1";
+			zoom_reset(el[i]);
+			update_text(el[i]);
+		}
+	}
+
+	// search
+	function reset_search() {
+		var el = document.getElementsByTagName("rect");
+		for (var i=0; i < el.length; i++) {
+			orig_load(el[i], "fill")
+		}
+	}
+	function search_prompt() {
+		if (!searching) {
+			var term = prompt("Enter a search term (regexp " +
+			    "allowed, eg: ^ext4_)", "");
+			if (term != null) {
+				search(term)
+			}
+		} else {
+			reset_search();
+			searching = 0;
+			searchbtn.style["opacity"] = "0.1";
+			searchbtn.firstChild.nodeValue = "Search"
+			matchedtxt.style["opacity"] = "0.0";
+			matchedtxt.firstChild.nodeValue = ""
+		}
+	}
+	function search(term) {
+		var re = new RegExp(term);
+		var el = document.getElementsByTagName("g");
+		var matches = new Object();
+		var maxwidth = 0;
+		for (var i = 0; i < el.length; i++) {
+			var e = el[i];
+			if (e.attributes["class"].value != "func_g")
+				continue;
+			var func = g_to_func(e);
+			var rect = find_child(e, "rect");
+			if (rect == null) {
+				// the rect might be wrapped in an anchor
+				// if nameattr href is being used
+				if (rect = find_child(e, "a")) {
+				    rect = find_child(r, "rect");
+				}
+			}
+			if (func == null || rect == null)
+				continue;
+
+			// Save max width. Only works as we have a root frame
+			var w = parseFloat(rect.attributes["width"].value);
+			if (w > maxwidth)
+				maxwidth = w;
+
+			if (func.match(re)) {
+				// highlight
+				var x = parseFloat(rect.attributes["x"].value);
+				orig_save(rect, "fill");
+				rect.attributes["fill"].value =
+				    "rgb(230,0,230)";
+
+				// remember matches
+				if (matches[x] == undefined) {
+					matches[x] = w;
+				} else {
+					if (w > matches[x]) {
+						// overwrite with parent
+						matches[x] = w;
+					}
+				}
+				searching = 1;
+			}
+		}
+		if (!searching)
+			return;
+
+		searchbtn.style["opacity"] = "1.0";
+		searchbtn.firstChild.nodeValue = "Reset Search"
+
+		// calculate percent matched, excluding vertical overlap
+		var count = 0;
+		var lastx = -1;
+		var lastw = 0;
+		var keys = Array();
+		for (k in matches) {
+			if (matches.hasOwnProperty(k))
+				keys.push(k);
+		}
+		// sort the matched frames by their x location
+		// ascending, then width descending
+		keys.sort(function(a, b){
+			return a - b;
+		});
+		// Step through frames saving only the biggest bottom-up frames
+		// thanks to the sort order. This relies on the tree property
+		// where children are always smaller than their parents.
+		var fudge = 0.0001;	// JavaScript floating point
+		for (var k in keys) {
+			var x = parseFloat(keys[k]);
+			var w = matches[keys[k]];
+			if (x >= lastx + lastw - fudge) {
+				count += w;
+				lastx = x;
+				lastw = w;
+			}
+		}
+		// display matched percent
+		matchedtxt.style["opacity"] = "1.0";
+		pct = 100 * count / maxwidth;
+		if (pct == 100)
+			pct = "100"
+		else
+			pct = pct.toFixed(1)
+		matchedtxt.firstChild.nodeValue = "Matched: " + pct + "%";
+	}
+	function searchover(e) {
+		searchbtn.style["opacity"] = "1.0";
+	}
+	function searchout(e) {
+		if (searching) {
+			searchbtn.style["opacity"] = "1.0";
+		} else {
+			searchbtn.style["opacity"] = "0.1";
+		}
+	}
+]]>
+</script>
+<rect x="0" y="0" width="100%" height="100%" fill="rgb(240,240,220)"/>
+<text x="400" y="24" text-anchor="middle" style="font-size:17px">Flame Graph</text>
+<text x="10" y="245" id="details"> </text>
+<text x="10" y="24" id="unzoom" onclick="unzoom()" style="opacity:0.0;cursor:pointer">Reset Zoom</text>
+<text x="690" y="24" id="search" onmouseover="searchover()" onmouseout="searchout()" onclick="search_prompt()" style="opacity:0.1;cursor:pointer">Search</text>
+<text x="690" y="245" id="matched"> </text>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>all (2,997 samples, 100.00%)</title><rect x="10.0" y="211.0" width="780.0" height="15" fill="#f67575" rx="2" ry="2"/>
+<text x="13.0" y="222.0">all</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>SharedRuntime::resolve_helper(JavaThread*, bool, bool, Thread*) (8 samples, 0.27%)</title><rect x="10.0" y="195.0" width="2.1" height="15" fill="#c4c439" rx="2" ry="2"/>
+<text x="13.0" y="206.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>SharedRuntime::resolve_static_call_C(JavaThread*) (69 samples, 2.30%)</title><rect x="12.1" y="195.0" width="17.9" height="15" fill="#dada41" rx="2" ry="2"/>
+<text x="15.1" y="206.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>SharedRuntime::resolve_helper(JavaThread*, bool, bool, Thread*) (62 samples, 2.07%)</title><rect x="13.1" y="179.0" width="16.2" height="15" fill="#dada41" rx="2" ry="2"/>
+<text x="16.1" y="190.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>JavaFrameAnchor::make_walkable(JavaThread*) (4 samples, 0.13%)</title><rect x="17.3" y="163.0" width="1.0" height="15" fill="#e1e144" rx="2" ry="2"/>
+<text x="20.3" y="174.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>RegisterMap::RegisterMap(JavaThread*, bool) (13 samples, 0.43%)</title><rect x="18.3" y="163.0" width="3.4" height="15" fill="#b9b935" rx="2" ry="2"/>
+<text x="21.3" y="174.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>SharedRuntime::resolve_sub_helper(JavaThread*, bool, bool, Thread*) (29 samples, 0.97%)</title><rect x="21.7" y="163.0" width="7.6" height="15" fill="#c1c138" rx="2" ry="2"/>
+<text x="24.7" y="174.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>StaticExample.&lt;clinit&gt; (2,803 samples, 93.53%)</title><rect x="30.0" y="195.0" width="729.5" height="15" fill="#60f260" rx="2" ry="2"/>
+<text x="33.0" y="206.0">StaticExample.&lt;clinit&gt;</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>Method::verified_code_entry() (5 samples, 0.17%)</title><rect x="67.5" y="179.0" width="1.3" height="15" fill="#bebe37" rx="2" ry="2"/>
+<text x="70.5" y="190.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>SharedRuntime::resolve_static_call_C(JavaThread*) (2,583 samples, 86.19%)</title><rect x="68.8" y="179.0" width="672.3" height="15" fill="#cdcd3d" rx="2" ry="2"/>
+<text x="71.8" y="190.0">SharedRuntime::resolve_static_call_C(JavaThread*)</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>SharedRuntime::resolve_helper(JavaThread*, bool, bool, Thread*) (2,465 samples, 82.25%)</title><rect x="89.4" y="163.0" width="641.5" height="15" fill="#c9c93b" rx="2" ry="2"/>
+<text x="92.4" y="174.0">SharedRuntime::resolve_helper(JavaThread*, bool, bool, Thread*)</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>CodeBlob::is_compiled() const (11 samples, 0.37%)</title><rect x="91.5" y="147.0" width="2.8" height="15" fill="#d1d13e" rx="2" ry="2"/>
+<text x="94.5" y="158.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>CompiledMethod::is_compiled() const (7 samples, 0.23%)</title><rect x="94.3" y="147.0" width="1.8" height="15" fill="#c3c339" rx="2" ry="2"/>
+<text x="97.3" y="158.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>PcDescContainer::find_pc_desc_internal(unsigned char*, bool, PcDescSearch const&amp;) (5 samples, 0.17%)</title><rect x="97.7" y="147.0" width="1.3" height="15" fill="#cbcb3c" rx="2" ry="2"/>
+<text x="100.7" y="158.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>SharedRuntime::resolve_sub_helper(JavaThread*, bool, bool, Thread*) (2,388 samples, 79.68%)</title><rect x="99.5" y="147.0" width="621.5" height="15" fill="#e3e345" rx="2" ry="2"/>
+<text x="102.5" y="158.0">SharedRuntime::resolve_sub_helper(JavaThread*, bool, bool, Thread*)</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>Bytecode_member_ref::index() const (5 samples, 0.17%)</title><rect x="146.9" y="131.0" width="1.3" height="15" fill="#e1e144" rx="2" ry="2"/>
+<text x="149.9" y="142.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>CodeBlob::is_compiled() const (10 samples, 0.33%)</title><rect x="148.2" y="131.0" width="2.6" height="15" fill="#d1d13e" rx="2" ry="2"/>
+<text x="151.2" y="142.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>CodeCache::find_blob(void*) (5 samples, 0.17%)</title><rect x="150.8" y="131.0" width="1.3" height="15" fill="#d6d640" rx="2" ry="2"/>
+<text x="153.8" y="142.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>CompiledMethod::is_compiled() const (5 samples, 0.17%)</title><rect x="152.1" y="131.0" width="1.3" height="15" fill="#b6b634" rx="2" ry="2"/>
+<text x="155.1" y="142.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>JavaFrameAnchor::make_walkable(JavaThread*) (5 samples, 0.17%)</title><rect x="153.4" y="131.0" width="1.3" height="15" fill="#d0d03e" rx="2" ry="2"/>
+<text x="156.4" y="142.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>JavaThread::pd_last_frame() (168 samples, 5.61%)</title><rect x="154.7" y="131.0" width="43.7" height="15" fill="#afaf32" rx="2" ry="2"/>
+<text x="157.7" y="142.0">Java..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>CodeBlob::is_zombie() const (21 samples, 0.70%)</title><rect x="160.7" y="115.0" width="5.5" height="15" fill="#bcbc36" rx="2" ry="2"/>
+<text x="163.7" y="126.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>CodeCache::find_blob(void*) (116 samples, 3.87%)</title><rect x="166.2" y="115.0" width="30.1" height="15" fill="#b6b634" rx="2" ry="2"/>
+<text x="169.2" y="126.0">Co..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>CodeHeap::find_blob_unsafe(void*) const (49 samples, 1.63%)</title><rect x="183.6" y="99.0" width="12.7" height="15" fill="#dbdb42" rx="2" ry="2"/>
+<text x="186.6" y="110.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>CodeHeap::find_blob_unsafe(void*) const (8 samples, 0.27%)</title><rect x="196.3" y="115.0" width="2.1" height="15" fill="#b7b735" rx="2" ry="2"/>
+<text x="199.3" y="126.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>Method::bcp_from(int) const (5 samples, 0.17%)</title><rect x="198.9" y="131.0" width="1.4" height="15" fill="#c5c53a" rx="2" ry="2"/>
+<text x="201.9" y="142.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>SharedRuntime::find_callee_info_helper(JavaThread*, vframeStream&amp;, Bytecodes::Code&amp;, CallInfo&amp;, Thread*) (1,668 samples, 55.66%)</title><rect x="200.8" y="131.0" width="434.1" height="15" fill="#b6b634" rx="2" ry="2"/>
+<text x="203.8" y="142.0">SharedRuntime::find_callee_info_helper(JavaThread*, vframeSt..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>LinkResolver::resolve_invoke(CallInfo&amp;, Handle, constantPoolHandle const&amp;, int, Bytecodes::Code, Thread*) (1,171 samples, 39.07%)</title><rect x="222.6" y="115.0" width="304.8" height="15" fill="#b4b434" rx="2" ry="2"/>
+<text x="225.6" y="126.0">LinkResolver::resolve_invoke(CallInfo&amp;, H..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>ConstantPool::impl_name_ref_at(int, bool) (7 samples, 0.23%)</title><rect x="234.3" y="99.0" width="1.9" height="15" fill="#e5e545" rx="2" ry="2"/>
+<text x="237.3" y="110.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>ConstantPool::impl_signature_ref_at(int, bool) (5 samples, 0.17%)</title><rect x="236.2" y="99.0" width="1.3" height="15" fill="#bbbb36" rx="2" ry="2"/>
+<text x="239.2" y="110.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>ConstantPool::impl_tag_ref_at(int, bool) (10 samples, 0.33%)</title><rect x="237.5" y="99.0" width="2.6" height="15" fill="#cbcb3c" rx="2" ry="2"/>
+<text x="240.5" y="110.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>ConstantPool::klass_ref_at(int, Thread*) (30 samples, 1.00%)</title><rect x="240.1" y="99.0" width="7.8" height="15" fill="#dddd42" rx="2" ry="2"/>
+<text x="243.1" y="110.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>constantPoolHandle::~constantPoolHandle() (11 samples, 0.37%)</title><rect x="245.0" y="83.0" width="2.9" height="15" fill="#d0d03e" rx="2" ry="2"/>
+<text x="248.0" y="94.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>InstanceKlass::should_be_initialized() const (8 samples, 0.27%)</title><rect x="248.9" y="99.0" width="2.1" height="15" fill="#bfbf37" rx="2" ry="2"/>
+<text x="251.9" y="110.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>LinkResolver::resolve_static_call(CallInfo&amp;, LinkInfo const&amp;, bool, Thread*) (1,018 samples, 33.97%)</title><rect x="252.6" y="99.0" width="264.9" height="15" fill="#d2d23e" rx="2" ry="2"/>
+<text x="255.6" y="110.0">LinkResolver::resolve_static_call(C..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>AccessInternal::PostRuntimeDispatch&lt;G1BarrierSet::AccessBarrier&lt;1097844ul, G1BarrierSet&gt;, (AccessInternal::BarrierType)2, 1097844ul&gt;::oop_access_barrier(void*) (20 samples, 0.67%)</title><rect x="280.9" y="83.0" width="5.2" height="15" fill="#cbcb3c" rx="2" ry="2"/>
+<text x="283.9" y="94.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>AccessInternal::PostRuntimeDispatch&lt;G1BarrierSet::AccessBarrier&lt;573558ul, G1BarrierSet&gt;, (AccessInternal::BarrierType)3, 573558ul&gt;::oop_access_barrier(oopDesc*, long) (8 samples, 0.27%)</title><rect x="286.1" y="83.0" width="2.1" height="15" fill="#caca3b" rx="2" ry="2"/>
+<text x="289.1" y="94.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>Handle::Handle(Thread*, oopDesc*) (7 samples, 0.23%)</title><rect x="288.2" y="83.0" width="1.8" height="15" fill="#e4e445" rx="2" ry="2"/>
+<text x="291.2" y="94.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>HandleMark::initialize(Thread*) (5 samples, 0.17%)</title><rect x="290.0" y="83.0" width="1.3" height="15" fill="#bfbf37" rx="2" ry="2"/>
+<text x="293.0" y="94.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>HandleMark::~HandleMark() (4 samples, 0.13%)</title><rect x="291.3" y="83.0" width="1.1" height="15" fill="#d9d941" rx="2" ry="2"/>
+<text x="294.3" y="94.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>InstanceKlass::initialize(Thread*) (4 samples, 0.13%)</title><rect x="292.4" y="83.0" width="1.0" height="15" fill="#cbcb3c" rx="2" ry="2"/>
+<text x="295.4" y="94.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>InstanceKlass::initialize_impl(Thread*) (192 samples, 6.41%)</title><rect x="293.4" y="83.0" width="50.0" height="15" fill="#d9d941" rx="2" ry="2"/>
+<text x="296.4" y="94.0">Insta..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>AccessInternal::PostRuntimeDispatch&lt;G1BarrierSet::AccessBarrier&lt;1097844ul, G1BarrierSet&gt;, (AccessInternal::BarrierType)2, 1097844ul&gt;::oop_access_barrier(void*) (4 samples, 0.13%)</title><rect x="308.5" y="67.0" width="1.1" height="15" fill="#c5c53a" rx="2" ry="2"/>
+<text x="311.5" y="78.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>Handle::Handle(Thread*, oopDesc*) (10 samples, 0.33%)</title><rect x="310.3" y="67.0" width="2.6" height="15" fill="#e0e043" rx="2" ry="2"/>
+<text x="313.3" y="78.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>HandleMark::~HandleMark() (9 samples, 0.30%)</title><rect x="313.2" y="67.0" width="2.3" height="15" fill="#bebe37" rx="2" ry="2"/>
+<text x="316.2" y="78.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>Klass::class_loader() const (9 samples, 0.30%)</title><rect x="315.5" y="67.0" width="2.4" height="15" fill="#c2c239" rx="2" ry="2"/>
+<text x="318.5" y="78.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>ObjectLocker::ObjectLocker(Handle, Thread*, bool) (65 samples, 2.17%)</title><rect x="317.9" y="67.0" width="16.9" height="15" fill="#dbdb42" rx="2" ry="2"/>
+<text x="320.9" y="78.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>BiasedLocking::revoke_and_rebias(Handle, bool, Thread*) (14 samples, 0.47%)</title><rect x="331.2" y="51.0" width="3.6" height="15" fill="#e1e144" rx="2" ry="2"/>
+<text x="334.2" y="62.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>ObjectLocker::~ObjectLocker() (33 samples, 1.10%)</title><rect x="334.8" y="67.0" width="8.6" height="15" fill="#b2b233" rx="2" ry="2"/>
+<text x="337.8" y="78.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>InstanceKlass::uncached_lookup_method(Symbol const*, Symbol const*, Klass::OverpassLookupMode, Klass::PrivateLookupMode) const (59 samples, 1.97%)</title><rect x="343.7" y="83.0" width="15.3" height="15" fill="#e3e344" rx="2" ry="2"/>
+<text x="346.7" y="94.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>InstanceKlass::find_method_index(Array&lt;Method*&gt; const*, Symbol const*, Symbol const*, Klass::OverpassLookupMode, Klass::StaticLookupMode, Klass::PrivateLookupMode) [clone .constprop.269] (36 samples, 1.20%)</title><rect x="348.9" y="67.0" width="9.3" height="15" fill="#cbcb3c" rx="2" ry="2"/>
+<text x="351.9" y="78.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>method_matches(Method const*, Symbol const*, bool, bool, bool) (9 samples, 0.30%)</title><rect x="355.9" y="51.0" width="2.3" height="15" fill="#cc3838" rx="2" ry="2"/>
+<text x="358.9" y="62.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>Klass::class_loader() const (21 samples, 0.70%)</title><rect x="359.0" y="83.0" width="5.5" height="15" fill="#b9b935" rx="2" ry="2"/>
+<text x="362.0" y="94.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>LinkResolver::check_method_accessability(Klass*, Klass*, Klass*, methodHandle const&amp;, Thread*) (36 samples, 1.20%)</title><rect x="365.0" y="83.0" width="9.4" height="15" fill="#d3d33f" rx="2" ry="2"/>
+<text x="368.0" y="94.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>Reflection::verify_member_access(Klass const*, Klass const*, Klass const*, AccessFlags, bool, bool, Thread*) (15 samples, 0.50%)</title><rect x="370.5" y="67.0" width="3.9" height="15" fill="#dfdf43" rx="2" ry="2"/>
+<text x="373.5" y="78.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>LinkResolver::check_method_loader_constraints(LinkInfo const&amp;, methodHandle const&amp;, char const*, Thread*) (91 samples, 3.04%)</title><rect x="374.4" y="83.0" width="23.6" height="15" fill="#c2c238" rx="2" ry="2"/>
+<text x="377.4" y="94.0">L..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>Handle::Handle(Thread*, oopDesc*) (26 samples, 0.87%)</title><rect x="384.5" y="67.0" width="6.8" height="15" fill="#b2b233" rx="2" ry="2"/>
+<text x="387.5" y="78.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>Klass::class_loader() const (8 samples, 0.27%)</title><rect x="391.3" y="67.0" width="2.1" height="15" fill="#b0b032" rx="2" ry="2"/>
+<text x="394.3" y="78.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>SystemDictionary::check_signature_loaders(Symbol*, Handle, Handle, bool, Thread*) (18 samples, 0.60%)</title><rect x="393.4" y="67.0" width="4.6" height="15" fill="#c8c83b" rx="2" ry="2"/>
+<text x="396.4" y="78.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>LinkResolver::linktime_resolve_static_method(LinkInfo const&amp;, Thread*) (304 samples, 10.14%)</title><rect x="398.0" y="83.0" width="79.2" height="15" fill="#b2b233" rx="2" ry="2"/>
+<text x="401.0" y="94.0">LinkResol..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>AccessInternal::PostRuntimeDispatch&lt;G1BarrierSet::AccessBarrier&lt;1097844ul, G1BarrierSet&gt;, (AccessInternal::BarrierType)2, 1097844ul&gt;::oop_access_barrier(void*) (4 samples, 0.13%)</title><rect x="415.2" y="67.0" width="1.1" height="15" fill="#bcbc36" rx="2" ry="2"/>
+<text x="418.2" y="78.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>Handle::Handle(Thread*, oopDesc*) (6 samples, 0.20%)</title><rect x="416.3" y="67.0" width="1.5" height="15" fill="#e4e445" rx="2" ry="2"/>
+<text x="419.3" y="78.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>InstanceKlass::uncached_lookup_method(Symbol const*, Symbol const*, Klass::OverpassLookupMode, Klass::PrivateLookupMode) const (53 samples, 1.77%)</title><rect x="417.8" y="67.0" width="13.8" height="15" fill="#e0e044" rx="2" ry="2"/>
+<text x="420.8" y="78.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>InstanceKlass::find_method_index(Array&lt;Method*&gt; const*, Symbol const*, Symbol const*, Klass::OverpassLookupMode, Klass::StaticLookupMode, Klass::PrivateLookupMode) [clone .constprop.269] (41 samples, 1.37%)</title><rect x="420.2" y="51.0" width="10.6" height="15" fill="#dddd43" rx="2" ry="2"/>
+<text x="423.2" y="62.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>method_matches(Method const*, Symbol const*, bool, bool, bool) (8 samples, 0.27%)</title><rect x="428.8" y="35.0" width="2.0" height="15" fill="#d64747" rx="2" ry="2"/>
+<text x="431.8" y="46.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>Klass::class_loader() const (6 samples, 0.20%)</title><rect x="431.6" y="67.0" width="1.6" height="15" fill="#cccc3c" rx="2" ry="2"/>
+<text x="434.6" y="78.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>LinkResolver::check_method_accessability(Klass*, Klass*, Klass*, methodHandle const&amp;, Thread*) (39 samples, 1.30%)</title><rect x="433.2" y="67.0" width="10.1" height="15" fill="#c3c339" rx="2" ry="2"/>
+<text x="436.2" y="78.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>Reflection::verify_member_access(Klass const*, Klass const*, Klass const*, AccessFlags, bool, bool, Thread*) (16 samples, 0.53%)</title><rect x="438.9" y="51.0" width="4.2" height="15" fill="#d8d841" rx="2" ry="2"/>
+<text x="441.9" y="62.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>LinkResolver::check_method_loader_constraints(LinkInfo const&amp;, methodHandle const&amp;, char const*, Thread*) (63 samples, 2.10%)</title><rect x="443.3" y="67.0" width="16.4" height="15" fill="#cbcb3c" rx="2" ry="2"/>
+<text x="446.3" y="78.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>Handle::Handle(Thread*, oopDesc*) (12 samples, 0.40%)</title><rect x="451.4" y="51.0" width="3.1" height="15" fill="#d3d33f" rx="2" ry="2"/>
+<text x="454.4" y="62.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>Klass::class_loader() const (13 samples, 0.43%)</title><rect x="454.5" y="51.0" width="3.4" height="15" fill="#cccc3c" rx="2" ry="2"/>
+<text x="457.5" y="62.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>SystemDictionary::check_signature_loaders(Symbol*, Handle, Handle, bool, Thread*) (7 samples, 0.23%)</title><rect x="457.9" y="51.0" width="1.8" height="15" fill="#b1b132" rx="2" ry="2"/>
+<text x="460.9" y="62.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>methodHandle::methodHandle(methodHandle const&amp;) (26 samples, 0.87%)</title><rect x="460.5" y="67.0" width="6.8" height="15" fill="#c7c73a" rx="2" ry="2"/>
+<text x="463.5" y="78.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>methodHandle::operator=(methodHandle const&amp;) (5 samples, 0.17%)</title><rect x="467.3" y="67.0" width="1.3" height="15" fill="#e2e244" rx="2" ry="2"/>
+<text x="470.3" y="78.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>methodHandle::~methodHandle() (33 samples, 1.10%)</title><rect x="468.6" y="67.0" width="8.6" height="15" fill="#e2e244" rx="2" ry="2"/>
+<text x="471.6" y="78.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>ObjectLocker::~ObjectLocker() (4 samples, 0.13%)</title><rect x="477.7" y="83.0" width="1.0" height="15" fill="#d6d640" rx="2" ry="2"/>
+<text x="480.7" y="94.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>java_lang_Class::init_lock(oopDesc*) (5 samples, 0.17%)</title><rect x="479.2" y="83.0" width="1.4" height="15" fill="#bebe37" rx="2" ry="2"/>
+<text x="482.2" y="94.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>methodHandle::methodHandle(methodHandle const&amp;) (18 samples, 0.60%)</title><rect x="480.6" y="83.0" width="4.6" height="15" fill="#d7d740" rx="2" ry="2"/>
+<text x="483.6" y="94.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>methodHandle::operator=(methodHandle const&amp;) (80 samples, 2.67%)</title><rect x="485.2" y="83.0" width="20.9" height="15" fill="#d2d23e" rx="2" ry="2"/>
+<text x="488.2" y="94.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>methodHandle::~methodHandle() (44 samples, 1.47%)</title><rect x="506.1" y="83.0" width="11.4" height="15" fill="#c2c239" rx="2" ry="2"/>
+<text x="509.1" y="94.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>methodHandle::methodHandle(methodHandle const&amp;) (7 samples, 0.23%)</title><rect x="517.5" y="99.0" width="1.8" height="15" fill="#d4d43f" rx="2" ry="2"/>
+<text x="520.5" y="110.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>methodHandle::operator=(methodHandle const&amp;) (18 samples, 0.60%)</title><rect x="519.3" y="99.0" width="4.7" height="15" fill="#b8b835" rx="2" ry="2"/>
+<text x="522.3" y="110.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>methodHandle::~methodHandle() (13 samples, 0.43%)</title><rect x="524.0" y="99.0" width="3.4" height="15" fill="#c7c73a" rx="2" ry="2"/>
+<text x="527.0" y="110.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>Method::bcp_from(int) const (4 samples, 0.13%)</title><rect x="527.9" y="115.0" width="1.1" height="15" fill="#dfdf43" rx="2" ry="2"/>
+<text x="530.9" y="126.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>Monitor::unlock() (14 samples, 0.47%)</title><rect x="529.2" y="115.0" width="3.7" height="15" fill="#dcdc42" rx="2" ry="2"/>
+<text x="532.2" y="126.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>SharedRuntime::extract_attached_method(vframeStream&amp;) (296 samples, 9.88%)</title><rect x="532.9" y="115.0" width="77.0" height="15" fill="#c1c138" rx="2" ry="2"/>
+<text x="535.9" y="126.0">SharedRun..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>CompiledMethod::attached_method_before_pc(unsigned char*) (90 samples, 3.00%)</title><rect x="537.8" y="99.0" width="23.4" height="15" fill="#bbbb36" rx="2" ry="2"/>
+<text x="540.8" y="110.0">C..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>RelocIterator::initialize(CompiledMethod*, unsigned char*, unsigned char*) (60 samples, 2.00%)</title><rect x="544.8" y="83.0" width="15.7" height="15" fill="#e0e043" rx="2" ry="2"/>
+<text x="547.8" y="94.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>Monitor::lock_without_safepoint_check() (75 samples, 2.50%)</title><rect x="561.2" y="99.0" width="19.6" height="15" fill="#c2c239" rx="2" ry="2"/>
+<text x="564.2" y="110.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__tls_get_addr (5 samples, 0.17%)</title><rect x="571.6" y="83.0" width="1.3" height="15" fill="#ed6868" rx="2" ry="2"/>
+<text x="574.6" y="94.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__tls_get_addr_slow (5 samples, 0.17%)</title><rect x="572.9" y="83.0" width="1.3" height="15" fill="#fc7e7e" rx="2" ry="2"/>
+<text x="575.9" y="94.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>_dl_update_slotinfo (20 samples, 0.67%)</title><rect x="574.2" y="83.0" width="5.2" height="15" fill="#e86161" rx="2" ry="2"/>
+<text x="577.2" y="94.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>update_get_addr (5 samples, 0.17%)</title><rect x="579.4" y="83.0" width="1.4" height="15" fill="#ec6666" rx="2" ry="2"/>
+<text x="582.4" y="94.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>Monitor::unlock() (30 samples, 1.00%)</title><rect x="580.8" y="99.0" width="7.8" height="15" fill="#dede43" rx="2" ry="2"/>
+<text x="583.8" y="110.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__tls_get_addr (8 samples, 0.27%)</title><rect x="588.8" y="99.0" width="2.1" height="15" fill="#e05555" rx="2" ry="2"/>
+<text x="591.8" y="110.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>nmethodLocker::lock_nmethod(CompiledMethod*, bool) (27 samples, 0.90%)</title><rect x="591.4" y="99.0" width="7.0" height="15" fill="#e1e144" rx="2" ry="2"/>
+<text x="594.4" y="110.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>nmethodLocker::unlock_nmethod(CompiledMethod*) (31 samples, 1.03%)</title><rect x="598.4" y="99.0" width="8.1" height="15" fill="#c4c439" rx="2" ry="2"/>
+<text x="601.4" y="110.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>static_call_Relocation::method_value() (10 samples, 0.33%)</title><rect x="606.5" y="99.0" width="2.6" height="15" fill="#dbdb42" rx="2" ry="2"/>
+<text x="609.5" y="110.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>constantPoolHandle::~constantPoolHandle() (45 samples, 1.50%)</title><rect x="609.9" y="115.0" width="11.7" height="15" fill="#d4d43f" rx="2" ry="2"/>
+<text x="612.9" y="126.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>methodHandle::~methodHandle() (46 samples, 1.53%)</title><rect x="621.6" y="115.0" width="12.0" height="15" fill="#e1e144" rx="2" ry="2"/>
+<text x="624.6" y="126.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>nmethodLocker::unlock_nmethod(CompiledMethod*) (4 samples, 0.13%)</title><rect x="633.8" y="115.0" width="1.1" height="15" fill="#c9c93b" rx="2" ry="2"/>
+<text x="636.8" y="126.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>frame::is_interpreted_frame() const (11 samples, 0.37%)</title><rect x="635.1" y="131.0" width="2.9" height="15" fill="#baba36" rx="2" ry="2"/>
+<text x="638.1" y="142.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>frame::sender(RegisterMap*) const (194 samples, 6.47%)</title><rect x="638.0" y="131.0" width="50.5" height="15" fill="#e3e345" rx="2" ry="2"/>
+<text x="641.0" y="142.0">frame..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>CodeBlob::is_deoptimization_stub() const (11 samples, 0.37%)</title><rect x="651.3" y="115.0" width="2.8" height="15" fill="#e1e144" rx="2" ry="2"/>
+<text x="654.3" y="126.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>CodeCache::find_blob(void*) (6 samples, 0.20%)</title><rect x="654.1" y="115.0" width="1.6" height="15" fill="#b7b734" rx="2" ry="2"/>
+<text x="657.1" y="126.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>CompiledMethod::is_compiled() const (6 samples, 0.20%)</title><rect x="655.7" y="115.0" width="1.6" height="15" fill="#dfdf43" rx="2" ry="2"/>
+<text x="658.7" y="126.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>frame::frame(long*, long*, long*, unsigned char*) (120 samples, 4.00%)</title><rect x="657.3" y="115.0" width="31.2" height="15" fill="#d2d23e" rx="2" ry="2"/>
+<text x="660.3" y="126.0">fr..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>CodeCache::find_blob(void*) (53 samples, 1.77%)</title><rect x="667.7" y="99.0" width="13.8" height="15" fill="#c6c63a" rx="2" ry="2"/>
+<text x="670.7" y="110.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>CodeHeap::find_blob_unsafe(void*) const (23 samples, 0.77%)</title><rect x="675.5" y="83.0" width="6.0" height="15" fill="#d1d13e" rx="2" ry="2"/>
+<text x="678.5" y="94.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>CodeHeap::find_blob_unsafe(void*) const (8 samples, 0.27%)</title><rect x="681.5" y="99.0" width="2.1" height="15" fill="#bebe37" rx="2" ry="2"/>
+<text x="684.5" y="110.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>nmethod::is_zombie() const (19 samples, 0.63%)</title><rect x="683.6" y="99.0" width="4.9" height="15" fill="#dada41" rx="2" ry="2"/>
+<text x="686.6" y="110.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>methodHandle::methodHandle(methodHandle const&amp;) (20 samples, 0.67%)</title><rect x="688.5" y="131.0" width="5.2" height="15" fill="#bfbf38" rx="2" ry="2"/>
+<text x="691.5" y="142.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>methodHandle::~methodHandle() (20 samples, 0.67%)</title><rect x="693.7" y="131.0" width="5.2" height="15" fill="#c7c73a" rx="2" ry="2"/>
+<text x="696.7" y="142.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>nmethodLocker::lock_nmethod(CompiledMethod*, bool) (41 samples, 1.37%)</title><rect x="698.9" y="131.0" width="10.7" height="15" fill="#bbbb36" rx="2" ry="2"/>
+<text x="701.9" y="142.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>nmethodLocker::unlock_nmethod(CompiledMethod*) (44 samples, 1.47%)</title><rect x="709.6" y="131.0" width="11.4" height="15" fill="#b9b935" rx="2" ry="2"/>
+<text x="712.6" y="142.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>frame::is_interpreted_frame() const (5 samples, 0.17%)</title><rect x="721.0" y="147.0" width="1.3" height="15" fill="#bebe37" rx="2" ry="2"/>
+<text x="724.0" y="158.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>frame::sender(RegisterMap*) const (4 samples, 0.13%)</title><rect x="722.3" y="147.0" width="1.1" height="15" fill="#cdcd3d" rx="2" ry="2"/>
+<text x="725.3" y="158.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>methodHandle::operator=(methodHandle const&amp;) (10 samples, 0.33%)</title><rect x="724.2" y="147.0" width="2.6" height="15" fill="#c5c53a" rx="2" ry="2"/>
+<text x="727.2" y="158.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>methodHandle::~methodHandle() (11 samples, 0.37%)</title><rect x="726.8" y="147.0" width="2.8" height="15" fill="#b8b835" rx="2" ry="2"/>
+<text x="729.8" y="158.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>methodHandle::operator=(methodHandle const&amp;) (18 samples, 0.60%)</title><rect x="731.4" y="163.0" width="4.7" height="15" fill="#e0e044" rx="2" ry="2"/>
+<text x="734.4" y="174.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>methodHandle::~methodHandle() (19 samples, 0.63%)</title><rect x="736.1" y="163.0" width="5.0" height="15" fill="#b4b434" rx="2" ry="2"/>
+<text x="739.1" y="174.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>StaticExample.nextValue (23 samples, 0.77%)</title><rect x="741.1" y="179.0" width="6.0" height="15" fill="#39ce39" rx="2" ry="2"/>
+<text x="744.1" y="190.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>resolve_static_call (45 samples, 1.50%)</title><rect x="747.8" y="179.0" width="11.7" height="15" fill="#e35959" rx="2" ry="2"/>
+<text x="750.8" y="190.0"></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>[unknown_Java] (116 samples, 3.87%)</title><rect x="759.5" y="195.0" width="30.2" height="15" fill="#f16e6e" rx="2" ry="2"/>
+<text x="762.5" y="206.0">[u..</text>
+</g>
+</svg>
