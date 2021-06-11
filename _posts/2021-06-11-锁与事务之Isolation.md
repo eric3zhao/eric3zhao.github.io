@@ -2,9 +2,8 @@
 
 ## Read phenomena
 
-在讲隔离级别之前我们先要了解`Read phenomena`(读现象)。在`ANSI/ISO standard SQL 92`中提到了三种读现象。假设我们有张表数据如下：
+在讲隔离级别之前我们先要了解`Read phenomena`(读现象)。在`ANSI/ISO standard SQL 92`中提到了三种读现象。假设我们有张`user`表数据如下：
 
-Users
 | id  | name | age |
 | --- | ---- | --- |
 | 1   | Joe  | 20  |
@@ -12,7 +11,7 @@ Users
 
 ### Dirty reads
 
-脏读（也叫`uncommitted dependency`），当一个事务读到了被其他事务修改但是为提交的记录
+脏读（也叫`uncommitted dependency`），一个事务读到了被其他事务修改但是未提交的记录
 
 <table>
   <tr>
